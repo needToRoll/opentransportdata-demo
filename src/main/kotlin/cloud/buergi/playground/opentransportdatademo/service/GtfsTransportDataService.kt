@@ -8,29 +8,36 @@ import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import java.io.IOException
 import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import com.google.transit.realtime.GtfsRealtime.FeedEntity
+import com.google.transit.realtime.GtfsRealtime.FeedMessage
+import org.springframework.beans.factory.annotation.Value
 
 
 @Service
-class GtfsTransportDataService(val restTemplate: RestTemplate) {
-    companion object {
-        val headers = HttpHeaders()
-        init {
-            headers.set("Authorization", "57c5dbbbf1fe4d0001000018b3c53824d57640418b7a694276a16249")
-            headers.set("Content-Type","PROTO")
-        }
-    }
+class GtfsTransportDataService {
+
+    @Value("\${opentransportdata-demo.api-key}")
+    lateinit var apiKey: String
+
+    @Value("\${opentransportdata-demo.realtime-url}")
+    lateinit var realtimeUrl: String
 
     fun fetchTransportData() {
-        var httpEntity = HttpEntity<GtfsRealtime.FeedEntity>(headers)
-        restTemplate.exchange("https://api.opentransportdata.swiss/gtfs-rt", HttpMethod.GET, httpEntity, GtfsRealtime.FeedEntity::class.java)
-        println(httpEntity.body!!.tripUpdate.delay)
+        convertProtobufMessageStreamToJsonString()
     }
 
 
     @Throws(IOException::class)
-    private fun convertProtobufMessageStreamToJsonString(protobufStream: InputStream) {
-        val jsonFormat = JsonFormat()
-        val course = GtfsRealtime.TripUpdate.parseFrom(protobufStream)
-        println(jsonFormat.printToString(course))
+    private fun convertProtobufMessageStreamToJsonString() {
+        val httpURLConnection = URL(realtimeUrl).openConnection() as HttpURLConnection
+        httpURLConnection.addRequestProperty(HttpHeaders.AUTHORIZATION, apiKey)
+        val feed = FeedMessage.parseFrom(httpURLConnection.inputStream)
+        for (entity in feed.entityList) {
+            if (entity.hasTripUpdate()) {
+                println(entity.tripUpdate)
+            }
+        }
     }
 }

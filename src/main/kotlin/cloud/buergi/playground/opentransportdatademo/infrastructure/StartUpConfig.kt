@@ -5,10 +5,10 @@ import org.springframework.context.annotation.Configuration
 import javax.annotation.PostConstruct
 
 @Configuration
-class StartUpConfig(val gtfsTransportDataService: GtfsTransportDataService) {
+class StartUpConfig(val transportDataService: GtfsTransportDataService) {
     @PostConstruct
     fun startUp() {
-        gtfsTransportDataService.fetchTransportData()
+        transportDataService.fetchTransportData()
     }
 
 }
